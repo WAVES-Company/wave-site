@@ -4,14 +4,6 @@
 
 ---
 
-## 📸 Screenshots
-
-|<img src="assets/screenshots/screen1.jpg" width="160"/>|<img src="assets/screenshots/screen2.jpg" width="160"/>|<img src="assets/screenshots/screen3.jpg" width="160"/>|<img src="assets/screenshots/screen4.jpg" width="160"/>|<img src="assets/screenshots/screen5.jpg" width="160"/>|
-|:---:|:---:|:---:|:---:|:---:|
-| **Registration** | **Goals** | **Planner** | **Regular Goal** | **Money Goal** |
-
----
-
 ## ✨ Key Features
 
 ### 🎯 Goal Tracking
