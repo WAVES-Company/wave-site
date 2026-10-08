@@ -36,8 +36,32 @@
   <meta name="theme-color" content="#000000">
   <style>
     /* Fill the iOS status-bar area (black-translucent + viewport-fit=cover). */
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000000; }
+    html, body { margin: 0; padding: 0; position: fixed; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; background-color: #000000; }
   </style>
+  <script>
+    /* iOS PWA: viewport size/offset can be measured wrong at launch (taps land offset).
+       Reset scroll and make Flutter re-measure after short delays. */
+    (function () {
+      function fix() {
+        window.scrollTo(0, 0);
+        window.dispatchEvent(new Event('resize'));
+      }
+      var timers = [];
+      function schedule() {
+        window.scrollTo(0, 0);
+        timers.forEach(clearTimeout);
+        timers = [50, 300, 1000].map(function (ms) { return setTimeout(fix, ms); });
+      }
+      window.addEventListener('load', schedule);
+      window.addEventListener('pageshow', schedule);
+      window.addEventListener('orientationchange', schedule);
+      document.addEventListener('focusout', schedule);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', schedule);
+        window.visualViewport.addEventListener('scroll', schedule);
+      }
+    })();
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
