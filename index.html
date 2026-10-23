@@ -71,7 +71,7 @@
     #a2hs.show { opacity: 1; transform: none; }
     #a2hs svg { width: 18px; height: 18px; vertical-align: -3px; margin: 0 2px; }
     #a2hs-text { flex: 1; }
-    #a2hs-close { flex: none; width: 30px; height: 30px; border: 0; border-radius: 15px; background: rgba(255, 255, 255, 0.14); color: #fff; font-size: 20px; line-height: 30px; padding: 0; cursor: pointer; }
+    #a2hs-close { flex: none; width: 30px; height: 30px; border: 0; border-radius: 15px; background: rgba(255, 255, 255, 0.14); color: #fff; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; cursor: pointer; }
   </style>
   <script>
     (function () {
@@ -80,9 +80,6 @@
         var ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         var standalone = navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
         if (!ios || standalone) return;
-        var KEY = 'a2hs_dismissed_at', WEEK = 7 * 24 * 60 * 60 * 1000;
-        var last = parseInt(localStorage.getItem(KEY) || '0', 10);
-        if (last && Date.now() - last < WEEK) return;
         var share = '<svg viewBox="0 0 24 24" fill="none" stroke="#0A84FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>';
         var ru = /^ru/i.test(navigator.language || '');
         var text = ru
@@ -92,12 +89,11 @@
           var card = document.createElement('div');
           card.id = 'a2hs';
           card.setAttribute('role', 'dialog');
-          card.innerHTML = '<div id="a2hs-text">' + text + '</div><button id="a2hs-close" type="button" aria-label="' + (ru ? 'Закрыть' : 'Close') + '">&times;</button>';
+          card.innerHTML = '<div id="a2hs-text">' + text + '</div><button id="a2hs-close" type="button" aria-label="' + (ru ? 'Закрыть' : 'Close') + '"><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="width:12px;height:12px;margin:0;vertical-align:0"><path d="M1 1l10 10M11 1L1 11"/></svg></button>';
           document.body.appendChild(card);
           requestAnimationFrame(function () { card.classList.add('show'); });
           card.querySelector('#a2hs-close').addEventListener('click', function (e) {
             e.stopPropagation();
-            try { localStorage.setItem(KEY, String(Date.now())); } catch (_) {}
             card.classList.remove('show');
             setTimeout(function () { card.remove(); }, 300);
           });
