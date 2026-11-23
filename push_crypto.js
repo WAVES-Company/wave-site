@@ -1,5 +1,6 @@
 // Device-local encryption of Web Push reminder text (shared by the page and notif_sw.js).
-// AES-GCM key is generated once per device, non-extractable, kept in IndexedDB 'wave-push'/'keys'.
+// v1: AES-GCM key generated once per device ('aes'). v2: account key ('aes2', see wavePushSetUserKey).
+// Keys are non-extractable, kept in IndexedDB 'wave-push'/'keys'.
 (function (g) {
   function db() {
     return new Promise(function (res, rej) {
@@ -43,16 +44,30 @@
     }
     return k;
   }
+  // Account key (v2): same on every device of the user, derived from the account
+  // data key, so a reminder saved on one device can be read on all the others.
+  g.wavePushSetUserKey = async function (rawB64) {
+    var raw = unb64(rawB64);
+    var tag = new TextEncoder().encode('wave-push-v2');
+    var buf = new Uint8Array(raw.length + tag.length);
+    buf.set(raw, 0); buf.set(tag, raw.length);
+    var h = await crypto.subtle.digest('SHA-256', buf);
+    var nk = await crypto.subtle.importKey('raw', h, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+    await put(await db(), 'aes2', nk);
+    return true;
+  };
   g.wavePushEncrypt = async function (text) {
-    var k = await key(true);
+    var d = await db();
+    var k2 = await get(d, 'aes2');
+    var k = k2 || await key(true);
     var iv = crypto.getRandomValues(new Uint8Array(12));
     var c = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, k, new TextEncoder().encode(text));
-    return 'enc:v1:' + b64(iv) + ':' + b64(c);
+    return (k2 ? 'enc:v2:' : 'enc:v1:') + b64(iv) + ':' + b64(c);
   };
   g.wavePushDecrypt = async function (s) {
-    if (!s || s.indexOf('enc:v1:') !== 0) return s;
+    if (!s || s.indexOf('enc:v') !== 0) return s;
     var p = s.split(':');
-    var k = await key(false);
+    var k = p[1] === 'v2' ? await get(await db(), 'aes2') : await key(false);
     if (!k) throw new Error('no key');
     var out = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(p[2]) }, k, unb64(p[3]));
     return new TextDecoder().decode(out);

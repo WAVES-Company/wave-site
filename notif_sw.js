@@ -3,7 +3,7 @@ try { importScripts('push_crypto.js'); } catch (_) {}
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 // Web Push from the server. Payload: {title, body, tag}; title/body may be "enc:v1:..."
-// (encrypted on this device, see push_crypto.js).
+// (encrypted on the device, see push_crypto.js).
 async function wavePushText(data) {
   let lang = null;
   try { lang = self.wavePushGetLang ? await self.wavePushGetLang() : null; } catch (_) {}
@@ -12,7 +12,7 @@ async function wavePushText(data) {
   const fbBody = ru ? 'У тебя запланирована задача' : 'You have a scheduled task';
   async function dec(v, fb) {
     if (!v) return fb;
-    if (String(v).indexOf('enc:v1:') !== 0) return v;
+    if (String(v).indexOf('enc:v') !== 0) return v;
     try { return await self.wavePushDecrypt(v); } catch (_) { return fb; }
   }
   return { title: await dec(data.title, fbTitle), body: await dec(data.body, fbBody) };
