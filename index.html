@@ -63,6 +63,17 @@
     })();
   </script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    (function () {
+      var tw = window.Telegram && window.Telegram.WebApp;
+      if (!tw) return;
+      tw.ready();
+      tw.expand();
+      if (typeof tw.disableVerticalSwipes === 'function') {
+        tw.disableVerticalSwipes();
+      }
+    })();
+  </script>
 </head>
 <body>
   <script src="push_crypto.js"></script>
