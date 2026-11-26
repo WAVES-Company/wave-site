@@ -1,6 +1,3 @@
-// Device-local encryption of Web Push reminder text (shared by the page and notif_sw.js).
-// v1: AES-GCM key generated once per device ('aes'). v2: account key ('aes2', see wavePushSetUserKey).
-// Keys are non-extractable, kept in IndexedDB 'wave-push'/'keys'.
 (function (g) {
   function db() {
     return new Promise(function (res, rej) {
@@ -44,8 +41,6 @@
     }
     return k;
   }
-  // Account key (v2): same on every device of the user, derived from the account
-  // data key, so a reminder saved on one device can be read on all the others.
   g.wavePushSetUserKey = async function (rawB64) {
     var raw = unb64(rawB64);
     var tag = new TextEncoder().encode('wave-push-v2');
@@ -72,6 +67,19 @@
     var out = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(p[2]) }, k, unb64(p[3]));
     return new TextDecoder().decode(out);
   };
-  g.wavePushSetLang = async function (lang) { try { await put(await db(), 'lang', lang); } catch (_) {} };
-  g.wavePushGetLang = async function () { try { return await get(await db(), 'lang'); } catch (_) { return null; } };
+  g.wavePushSetTexts = async function (t) { try { await put(await db(), 'texts', { title: String((t && t.title) || ''), body: String((t && t.body) || '') }); } catch (_) {} };
+  g.wavePushGetTexts = async function () { try { return (await get(await db(), 'texts')) || null; } catch (_) { return null; } };
+  g.wavePushSetShowText = async function (v) { try { await put(await db(), 'showText', !!v); } catch (_) {} };
+  g.wavePushGetShowText = async function () { try { var v = await get(await db(), 'showText'); return v !== false; } catch (_) { return true; } };
+  g.wavePushClearUserKey = async function () {
+    try {
+      var d = await db();
+      await new Promise(function (res, rej) {
+        var t = d.transaction('keys', 'readwrite');
+        t.objectStore('keys').delete('aes2');
+        t.oncomplete = function () { res(); };
+        t.onerror = function () { rej(t.error); };
+      });
+    } catch (_) {}
+  };
 })(self);

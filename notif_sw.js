@@ -1,31 +1,35 @@
-// Minimal service worker so the PWA can show notifications (required on iOS).
 try { importScripts('push_crypto.js'); } catch (_) {}
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
-// Web Push from the server. Payload: {title, body, tag}; title/body may be "enc:v1:..."
-// (encrypted on the device, see push_crypto.js).
 async function wavePushText(data) {
-  let lang = null;
-  try { lang = self.wavePushGetLang ? await self.wavePushGetLang() : null; } catch (_) {}
-  const ru = (lang || (self.navigator && self.navigator.language) || '').toLowerCase().startsWith('ru');
-  const fbTitle = ru ? 'Напоминание wave' : 'wave reminder';
-  const fbBody = ru ? 'У тебя запланирована задача' : 'You have a scheduled task';
+  let texts = null;
+  try { texts = self.wavePushGetTexts ? await self.wavePushGetTexts() : null; } catch (_) {}
+  let showText = true;
+  try { showText = self.wavePushGetShowText ? await self.wavePushGetShowText() : true; } catch (_) {}
+  const isEnc = (v) => !!v && String(v).indexOf('enc:v') === 0;
   async function dec(v, fb) {
     if (!v) return fb;
-    if (String(v).indexOf('enc:v') !== 0) return v;
-    try { return await self.wavePushDecrypt(v); } catch (_) { return fb; }
+    if (!isEnc(v)) return v;
+    try {
+      const out = await self.wavePushDecrypt(v);
+      return out && String(out).trim() ? out : fb;
+    } catch (_) { return fb; }
   }
-  return { title: await dec(data.title, fbTitle), body: await dec(data.body, fbBody) };
+  const fbTitle = texts && texts.title ? texts.title : (isEnc(data.title) ? '' : (data.title || ''));
+  const fbBody = texts && texts.body ? texts.body : (isEnc(data.body) ? '' : (data.body || ''));
+  const title = await dec(data.title, fbTitle);
+  const body = showText ? await dec(data.body, fbBody) : fbBody;
+  return { title, body };
 }
 self.addEventListener('push', (e) => {
   let data = {};
   try { data = e.data ? e.data.json() : {}; } catch (_) { data = { body: e.data ? e.data.text() : '' }; }
   e.waitUntil(
-    wavePushText(data).then((t) => self.registration.showNotification(t.title || 'wave', {
+    wavePushText(data).then((t) => self.registration.showNotification(t.title || '', {
       body: t.body || '',
       icon: 'icons/Icon-192.png',
       tag: data.tag || undefined,
-      data: { url: data.url || self.registration.scope },
+      data: { url: data.url || self.registration.scope, tag: data.tag || null },
     }))
   );
 });
